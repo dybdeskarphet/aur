@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import re
+import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -51,6 +52,41 @@ def fetch_aur_info(pkg_names: list[str]) -> dict[str, str]:
         return {}
 
 
+def compare_versions(v1: str, v2: str) -> int:
+    """Returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 == v2."""
+    if v1 == v2:
+        return 0
+    try:
+        res = subprocess.run(["vercmp", v1, v2], capture_output=True, text=True)
+        if res.returncode == 0:
+            return int(res.stdout.strip())
+    except Exception:
+        pass
+
+    def parse_ver(v_str: str):
+        epoch = 0
+        if ":" in v_str:
+            epoch_str, v_str = v_str.split(":", 1)
+            epoch = int(epoch_str) if epoch_str.isdigit() else 0
+
+        pkgrel = "1"
+        if "-" in v_str:
+            v_str, pkgrel = v_str.rsplit("-", 1)
+
+        parts = [int(p) if p.isdigit() else p for p in re.split(r"[._~]", v_str)]
+        pkgrel_parts = [int(p) if p.isdigit() else p for p in re.split(r"[._~]", pkgrel)]
+        return (epoch, parts, pkgrel_parts)
+
+    v1_t = parse_ver(v1)
+    v2_t = parse_ver(v2)
+
+    if v1_t > v2_t:
+        return 1
+    elif v1_t < v2_t:
+        return -1
+    return 0
+
+
 def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> str:
     lines = [
         "| Package | Description | Repo Version | AUR Version | Status |",
@@ -64,11 +100,15 @@ def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> s
         desc = pkg["desc"]
 
         if aur_ver == "Not Published":
-            status = "⚪ Not on AUR"
-        elif repo_ver == aur_ver:
-            status = "🟢 In-Sync"
+            status = "⚪ Not published"
         else:
-            status = "🔴 Out-of-Date"
+            cmp_res = compare_versions(repo_ver, aur_ver)
+            if cmp_res == 0:
+                status = "🟢 Synced"
+            elif cmp_res > 0:
+                status = "🔵 Ahead of AUR"
+            else:
+                status = "🟠 Out of date"
 
         aur_link = f"https://aur.archlinux.org/packages/{name}"
         lines.append(
