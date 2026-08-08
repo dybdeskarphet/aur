@@ -1,0 +1,20 @@
+[__config__]
+oldver = "oldver.json"
+newver = "newver.json"
+
+[gams]
+source = "pypi"
+pypi = "gamspy-base"
+
+[niri-companion]
+source = "github"
+github = "dybdeskarphet/niri-companion"
+use_latest_release = true
+prefix = "v"
+
+[ungoogled-chromium-widevine-bin]
+source = "github"
+github = "ungoogled-software/ungoogled-chromium-archlinux"
+use_latest_release = true
+from_pattern = '^(\d+\.\d+\.\d+\.\d+)-\d+$'
+to_pattern = '\1'
