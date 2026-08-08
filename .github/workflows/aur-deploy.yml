@@ -44,11 +44,23 @@ jobs:
           git config --global user.name "Ahmet Arda Kavakci"
           git config --global user.email "ahmetardakavakci@gmail.com"
 
-          CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | cut -d/ -f1 | sort -u)
-
-          if [ -z "$CHANGED_DIRS" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_run" ]; then
             CHANGED_DIRS="gams niri-companion ungoogled-chromium-widevine-bin"
+          else
+            CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | cut -d/ -f1 | sort -u)
+            HAS_PKG=false
+            for d in $CHANGED_DIRS; do
+              if [ -f "$d/PKGBUILD" ]; then
+                HAS_PKG=true
+                break
+              fi
+            done
+            if [ "$HAS_PKG" = "false" ]; then
+              CHANGED_DIRS="gams niri-companion ungoogled-chromium-widevine-bin"
+            fi
           fi
+
+          echo "Target package directories: $CHANGED_DIRS"
 
           for pkg in $CHANGED_DIRS; do
             if [ ! -f "$pkg/PKGBUILD" ]; then
@@ -62,6 +74,7 @@ jobs:
             PKG_COMMIT_MSG=$(git log -1 --pretty=format:"%s" -- "$pkg/")
             CLEAN_MSG=$(echo "${PKG_COMMIT_MSG:-Update package}" | sed -E "s/^[a-zA-Z0-9_-]*\($pkg\):\s*//; s/^$pkg:\s*//")
 
+            echo "Cloning AUR repository ssh://aur@aur.archlinux.org/$pkg.git..."
             git clone "ssh://aur@aur.archlinux.org/$pkg.git" "aur_$pkg"
 
             rsync -av --delete \
@@ -74,6 +87,7 @@ jobs:
             cd "aur_$pkg"
 
             if [ -n "$(git status --porcelain)" ]; then
+              echo "Diff detected in $pkg. Committing and pushing to AUR..."
               git add .
               git commit -m "$CLEAN_MSG"
               git push origin master
