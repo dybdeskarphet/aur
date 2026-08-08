@@ -1,6 +1,6 @@
 # AUR Packages Monorepo
 
-Collection of Arch Linux User Repository (AUR) packages maintained by [@dybdeskarphet](https://github.com/dybdeskarphet).
+Collection of Arch Linux User Repository (AUR) packages maintained by me.
 
 ## Packages Overview
 
