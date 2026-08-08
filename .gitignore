@@ -1,0 +1,17 @@
+# Makepkg build artifacts & directories
+**/src/
+**/pkg/
+**/*.pkg.tar.*
+**/*.log
+
+# Downloaded source archives
+**/*.exe
+**/*.zip
+**/*.deb
+**/*.tar.gz
+**/*.tar.xz
+**/*.tar.zst
+
+# nvchecker temporary runtime files
+newver.json
+updates.txt
