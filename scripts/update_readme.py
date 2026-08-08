@@ -2,7 +2,6 @@
 from pathlib import Path
 import json
 import re
-import subprocess
 import sys
 import urllib.parse
 import urllib.request
@@ -17,17 +16,21 @@ def parse_pkgbuild(pkg_dir: Path) -> dict:
 
     pkgver_match = re.search(r"^pkgver=(.+)$", content, re.MULTILINE)
     pkgrel_match = re.search(r"^pkgrel=(.+)$", content, re.MULTILINE)
+    epoch_match = re.search(r"^epoch=(.+)$", content, re.MULTILINE)
     desc_match = re.search(r"^pkgdesc=['\"](.+)['\"]$", content, re.MULTILINE) or re.search(
         r"^pkgdesc=(.+)$", content, re.MULTILINE
     )
 
     pkgver = pkgver_match.group(1).strip("'\"") if pkgver_match else "unknown"
     pkgrel = pkgrel_match.group(1).strip("'\"") if pkgrel_match else "1"
+    epoch = epoch_match.group(1).strip("'\"") if epoch_match else ""
     desc = desc_match.group(1).strip("'\"") if desc_match else ""
+
+    ver_str = f"{epoch}:{pkgver}-{pkgrel}" if epoch else f"{pkgver}-{pkgrel}"
 
     return {
         "name": pkg_dir.name,
-        "repo_ver": f"{pkgver}-{pkgrel}",
+        "repo_ver": ver_str,
         "desc": desc,
     }
 
@@ -53,15 +56,11 @@ def fetch_aur_info(pkg_names: list[str]) -> dict[str, str]:
 
 
 def compare_versions(v1: str, v2: str) -> int:
-    """Returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 == v2."""
+    """Pure Python Arch Linux version comparator (epoch:pkgver-pkgrel).
+    Returns 1 if v1 > v2, -1 if v1 < v2, 0 if v1 == v2.
+    """
     if v1 == v2:
         return 0
-    try:
-        res = subprocess.run(["vercmp", v1, v2], capture_output=True, text=True)
-        if res.returncode == 0:
-            return int(res.stdout.strip())
-    except Exception:
-        pass
 
     def parse_ver(v_str: str):
         epoch = 0
@@ -73,9 +72,15 @@ def compare_versions(v1: str, v2: str) -> int:
         if "-" in v_str:
             v_str, pkgrel = v_str.rsplit("-", 1)
 
-        parts = [int(p) if p.isdigit() else p for p in re.split(r"[._~]", v_str)]
-        pkgrel_parts = [int(p) if p.isdigit() else p for p in re.split(r"[._~]", pkgrel)]
-        return (epoch, parts, pkgrel_parts)
+        ver_chunks = [
+            int(chunk) if chunk.isdigit() else chunk
+            for chunk in re.findall(r"[0-9]+|[^0-9._~-]+", v_str)
+        ]
+        rel_chunks = [
+            int(chunk) if chunk.isdigit() else chunk
+            for chunk in re.findall(r"[0-9]+|[^0-9._~-]+", pkgrel)
+        ]
+        return (epoch, ver_chunks, rel_chunks)
 
     v1_t = parse_ver(v1)
     v2_t = parse_ver(v2)

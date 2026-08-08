@@ -22,13 +22,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.x'
+          enable-cache: true
 
-      - name: Update README.md
-        run: python3 scripts/update_readme.py
+      - name: Run README updater with uv
+        run: uv run scripts/update_readme.py
 
       - name: Commit & Push README
         run: |
