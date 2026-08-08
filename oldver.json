@@ -1,5 +1,15 @@
 {
-  "gams": "54.2.0",
-  "niri-companion": "5.0.0",
-  "ungoogled-chromium-widevine-bin": "150.0.7871.186"
+  "version": 2,
+  "data": {
+    "gams": {
+      "version": "54.2.2",
+      "url": "https://pypi.org/project/gamspy-base/54.2.2/"
+    },
+    "niri-companion": {
+      "version": "5.0.0"
+    },
+    "ungoogled-chromium-widevine-bin": {
+      "version": "150.0.7871.186"
+    }
+  }
 }
