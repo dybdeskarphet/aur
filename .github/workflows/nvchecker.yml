@@ -5,6 +5,9 @@ on:
     - cron: '0 3 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check-and-update:
     runs-on: ubuntu-latest
@@ -18,7 +21,7 @@ jobs:
           echo "" | pacman -Syu --needed --noconfirm base-devel git nvchecker python-packaging pacman-contrib sudo rsync
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure safe directory & builder user
         run: |
