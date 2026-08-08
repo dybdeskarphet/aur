@@ -14,11 +14,11 @@ def parse_pkgbuild(pkg_dir: Path) -> dict:
 
     content = pkgbuild.read_text(encoding="utf-8")
 
-    pkgver_match = re.search(r"^pkgver=(.+)$", content, re.MULTILINE)
-    pkgrel_match = re.search(r"^pkgrel=(.+)$", content, re.MULTILINE)
-    epoch_match = re.search(r"^epoch=(.+)$", content, re.MULTILINE)
+    pkgver_match = re.search(r"^pkgver=([^\s#]+)", content, re.MULTILINE)
+    pkgrel_match = re.search(r"^pkgrel=([^\s#]+)", content, re.MULTILINE)
+    epoch_match = re.search(r"^epoch=([^\s#]+)", content, re.MULTILINE)
     desc_match = re.search(r"^pkgdesc=['\"](.+)['\"]$", content, re.MULTILINE) or re.search(
-        r"^pkgdesc=(.+)$", content, re.MULTILINE
+        r"^pkgdesc=([^\n#]+)", content, re.MULTILINE
     )
 
     pkgver = pkgver_match.group(1).strip("'\"") if pkgver_match else "unknown"
@@ -72,15 +72,18 @@ def compare_versions(v1: str, v2: str) -> int:
         if "-" in v_str:
             v_str, pkgrel = v_str.rsplit("-", 1)
 
-        ver_chunks = [
-            int(chunk) if chunk.isdigit() else chunk
-            for chunk in re.findall(r"[0-9]+|[^0-9._~-]+", v_str)
-        ]
-        rel_chunks = [
-            int(chunk) if chunk.isdigit() else chunk
-            for chunk in re.findall(r"[0-9]+|[^0-9._~-]+", pkgrel)
-        ]
-        return (epoch, ver_chunks, rel_chunks)
+        def tokenize(s: str):
+            tokens = []
+            for part in re.split(r"([0-9]+|[^0-9._~-]+)", s):
+                if not part or part in "._~-":
+                    continue
+                if part.isdigit():
+                    tokens.append((1, int(part)))
+                else:
+                    tokens.append((0, part))
+            return tokens
+
+        return (epoch, tokenize(v_str), tokenize(pkgrel))
 
     v1_t = parse_ver(v1)
     v2_t = parse_ver(v2)

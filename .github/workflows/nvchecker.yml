@@ -68,7 +68,7 @@ jobs:
                   cd "$GITHUB_WORKSPACE"
                   su builder -c "nvtake -c nvchecker.toml $pkg"
 
-                  GIT_PKGVER=$(grep '^pkgver=' "$pkg/PKGBUILD" | cut -d= -f2)
+                  GIT_PKGVER=$(grep '^pkgver=' "$pkg/PKGBUILD" | cut -d= -f2 | tr -d "'\"")
 
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -82,8 +82,10 @@ jobs:
                   cd "$GITHUB_WORKSPACE"
                 fi
               else
-                # Standard release package
-                sed -i "s/^pkgver=.*/pkgver=$newver/" PKGBUILD
+                # Standard release package (sanitize newver)
+                CLEAN_NEWVER=$(echo "$newver" | sed -E 's/^v//; s/^[0-9]+://; s/-[0-9]+$//')
+
+                sed -i "s/^pkgver=.*/pkgver=$CLEAN_NEWVER/" PKGBUILD
                 sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
 
                 su builder -c "updpkgsums"
@@ -100,7 +102,7 @@ jobs:
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add "$pkg/" nvchecker.toml oldver.json
-                  git commit -m "update($pkg): update version to $newver"
+                  git commit -m "update($pkg): update version to $CLEAN_NEWVER"
                   updated_any=true
                 else
                   echo "ERROR: Build failed for $pkg ($newver)! Reverting changes."
