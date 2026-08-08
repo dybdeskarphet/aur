@@ -11,9 +11,7 @@ on:
     branches:
       - main
     paths:
-      - 'gams/**'
-      - 'niri-companion/**'
-      - 'ungoogled-chromium-widevine-bin/**'
+      - 'packages/**'
   workflow_dispatch:
 
 jobs:
@@ -44,26 +42,28 @@ jobs:
           git config --global user.name "Ahmet Arda Kavakci"
           git config --global user.email "ahmetardakavakci@gmail.com"
 
+          ALL_PACKAGES=$(find packages -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_run" ]; then
-            CHANGED_DIRS="gams niri-companion ungoogled-chromium-widevine-bin"
+            CHANGED_DIRS="$ALL_PACKAGES"
           else
-            CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | cut -d/ -f1 | sort -u)
+            CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^packages/' | cut -d/ -f2 | sort -u)
             HAS_PKG=false
             for d in $CHANGED_DIRS; do
-              if [ -f "$d/PKGBUILD" ]; then
+              if [ -f "packages/$d/PKGBUILD" ]; then
                 HAS_PKG=true
                 break
               fi
             done
             if [ "$HAS_PKG" = "false" ]; then
-              CHANGED_DIRS="gams niri-companion ungoogled-chromium-widevine-bin"
+              CHANGED_DIRS="$ALL_PACKAGES"
             fi
           fi
 
           echo "Target package directories: $CHANGED_DIRS"
 
           for pkg in $CHANGED_DIRS; do
-            if [ ! -f "$pkg/PKGBUILD" ]; then
+            if [ ! -f "packages/$pkg/PKGBUILD" ]; then
               continue
             fi
 
@@ -71,7 +71,7 @@ jobs:
             echo "Processing changed package: $pkg"
             echo "=========================================="
 
-            PKG_COMMIT_MSG=$(git log -1 --pretty=format:"%s" -- "$pkg/")
+            PKG_COMMIT_MSG=$(git log -1 --pretty=format:"%s" -- "packages/$pkg/")
             CLEAN_MSG=$(echo "${PKG_COMMIT_MSG:-Update package}" | sed -E "s/^[a-zA-Z0-9_-]*\($pkg\):\s*//; s/^$pkg:\s*//")
 
             echo "Cloning AUR repository ssh://aur@aur.archlinux.org/$pkg.git..."
@@ -82,7 +82,7 @@ jobs:
               --exclude='*.pkg.tar.*' \
               --exclude='src/' \
               --exclude='pkg/' \
-              "$pkg/" "aur_$pkg/"
+              "packages/$pkg/" "aur_$pkg/"
 
             cd "aur_$pkg"
 

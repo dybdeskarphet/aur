@@ -50,12 +50,12 @@ jobs:
             oldver=$(echo "$line" | awk '{print $2}')
             newver=$(echo "$line" | awk '{print $4}')
 
-            if [ -d "$GITHUB_WORKSPACE/$pkg" ]; then
+            if [ -d "$GITHUB_WORKSPACE/packages/$pkg" ]; then
               echo "=========================================="
               echo "Processing $pkg: $oldver -> $newver"
               echo "=========================================="
 
-              cd "$GITHUB_WORKSPACE/$pkg"
+              cd "$GITHUB_WORKSPACE/packages/$pkg"
 
               if grep -q 'pkgver()' PKGBUILD; then
                 # -git package: let makepkg update PKGBUILD via pkgver()
@@ -68,16 +68,16 @@ jobs:
                   cd "$GITHUB_WORKSPACE"
                   su builder -c "nvtake -c nvchecker.toml $pkg"
 
-                  GIT_PKGVER=$(grep '^pkgver=' "$pkg/PKGBUILD" | cut -d= -f2 | tr -d "'\"")
+                  GIT_PKGVER=$(grep '^pkgver=' "packages/$pkg/PKGBUILD" | cut -d= -f2 | tr -d "'\"")
 
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add "$pkg/" nvchecker.toml oldver.json
+                  git add "packages/$pkg/" nvchecker.toml oldver.json
                   git commit -m "update($pkg): update version to $GIT_PKGVER"
                   updated_any=true
                 else
                   echo "ERROR: Build failed for $pkg! Reverting changes."
-                  cd "$GITHUB_WORKSPACE/$pkg"
+                  cd "$GITHUB_WORKSPACE/packages/$pkg"
                   git checkout -- PKGBUILD .SRCINFO
                   cd "$GITHUB_WORKSPACE"
                 fi
@@ -101,12 +101,12 @@ jobs:
 
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add "$pkg/" nvchecker.toml oldver.json
+                  git add "packages/$pkg/" nvchecker.toml oldver.json
                   git commit -m "update($pkg): update version to $CLEAN_NEWVER"
                   updated_any=true
                 else
                   echo "ERROR: Build failed for $pkg ($newver)! Reverting changes."
-                  cd "$GITHUB_WORKSPACE/$pkg"
+                  cd "$GITHUB_WORKSPACE/packages/$pkg"
                   git checkout -- PKGBUILD .SRCINFO
                   cd "$GITHUB_WORKSPACE"
                 fi
