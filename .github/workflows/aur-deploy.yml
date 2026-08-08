@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Publish changed packages to AUR
         env:
@@ -39,7 +39,7 @@ jobs:
           chmod 700 ~/.ssh
           echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H aur.archlinux.org >> ~/.ssh/known_hosts
+          ssh-keyscan -H aur.archlinux.org 2>/dev/null >> ~/.ssh/known_hosts
 
           git config --global user.name "Ahmet Arda Kavakci"
           git config --global user.email "ahmetardakavakci@gmail.com"
