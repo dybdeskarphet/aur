@@ -1,0 +1,78 @@
+name: Deploy Packages to AUR
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'gams/**'
+      - 'niri-companion/**'
+      - 'ungoogled-chromium-widevine-bin/**'
+  workflow_dispatch:
+
+jobs:
+  sync-aur:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Publish changed packages to AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then
+            echo "ERROR: AUR_SSH_PRIVATE_KEY secret is not set!"
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          echo "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -h aur.archlinux.org >> ~/.ssh/known_hosts
+
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+          CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | cut -d/ -f1 | sort -u)
+
+          if [ -z "$CHANGED_DIRS" ]; then
+            CHANGED_DIRS="gams niri-companion ungoogled-chromium-widevine-bin"
+          fi
+
+          for pkg in $CHANGED_DIRS; do
+            if [ ! -f "$pkg/PKGBUILD" ]; then
+              continue
+            fi
+
+            echo "=========================================="
+            echo "Processing changed package: $pkg"
+            echo "=========================================="
+
+            PKG_COMMIT_MSG=$(git log -1 --pretty=format:"%s" -- "$pkg/")
+            CLEAN_MSG=$(echo "${PKG_COMMIT_MSG:-Update package}" | sed -E "s/^[a-zA-Z0-9_-]*\($pkg\):\s*//; s/^$pkg:\s*//")
+
+            git clone "ssh://aur@aur.archlinux.org/$pkg.git" "aur_$pkg"
+
+            rsync -av --delete \
+              --exclude='.git' \
+              --exclude='*.pkg.tar.*' \
+              --exclude='src/' \
+              --exclude='pkg/' \
+              "$pkg/" "aur_$pkg/"
+
+            cd "aur_$pkg"
+
+            if [ -n "$(git status --porcelain)" ]; then
+              git add .
+              git commit -m "$CLEAN_MSG"
+              git push origin master
+              echo "SUCCESS: Pushed changes to AUR ($pkg)."
+            else
+              echo "SKIP: No diffs detected for $pkg in AUR repo."
+            fi
+
+            cd "$GITHUB_WORKSPACE"
+          done
