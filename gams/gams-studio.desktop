@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=GAMS Studio
+Comment=IDE for the General Algebraic Modeling System
+Keywords=gams;optimization;modeling;mathematical;programming;
+Exec=gams-studio
+Icon=applications-science
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=Development;Science;Math;
