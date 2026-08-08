@@ -108,15 +108,15 @@ def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> s
         desc = pkg["desc"]
 
         if aur_ver == "Not Published":
-            status_badge = "![Not published](https://img.shields.io/badge/Status-Not%20published-6e7681?style=flat-square)"
+            status_badge = "![Not published](https://img.shields.io/badge/Not%20published-6e7681?style=flat-square&logo=dash&logoColor=white)"
         else:
             cmp_res = compare_versions(repo_ver, aur_ver)
             if cmp_res == 0:
-                status_badge = "![Synced](https://img.shields.io/badge/Status-Synced-brightgreen?style=flat-square)"
+                status_badge = "![Synced](https://img.shields.io/badge/Synced-2da44e?style=flat-square&logo=check&logoColor=white)"
             elif cmp_res > 0:
-                status_badge = "![Ahead of AUR](https://img.shields.io/badge/Status-Ahead%20of%20AUR-0969da?style=flat-square)"
+                status_badge = "![Ahead of AUR](https://img.shields.io/badge/Ahead%20of%20AUR-0969da?style=flat-square&logo=rocket&logoColor=white)"
             else:
-                status_badge = "![Out of date](https://img.shields.io/badge/Status-Out%20of%20date-d97706?style=flat-square)"
+                status_badge = "![Out of date](https://img.shields.io/badge/Out%20of%20date-d97706?style=flat-square&logo=alert&logoColor=white)"
 
         aur_link = f"https://aur.archlinux.org/packages/{name}"
         lines.append(
@@ -135,11 +135,13 @@ def update_readme(repo_root: Path):
         sys.exit(1)
 
     packages = []
-    for item in repo_root.iterdir():
-        if item.is_dir() and not item.name.startswith("."):
-            pkg_info = parse_pkgbuild(item)
-            if pkg_info:
-                packages.append(pkg_info)
+    packages_dir = repo_root / "packages"
+    if packages_dir.exists():
+        for item in packages_dir.iterdir():
+            if item.is_dir() and not item.name.startswith("."):
+                pkg_info = parse_pkgbuild(item)
+                if pkg_info:
+                    packages.append(pkg_info)
 
     pkg_names = [p["name"] for p in packages]
     aur_info = fetch_aur_info(pkg_names)
