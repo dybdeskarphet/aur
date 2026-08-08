@@ -40,8 +40,8 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -h aur.archlinux.org >> ~/.ssh/known_hosts
 
-          git config --global user.name "${{ github.actor }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "Ahmet Arda Kavakci"
+          git config --global user.email "ahmetardakavakci@gmail.com"
 
           CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | cut -d/ -f1 | sort -u)
 
