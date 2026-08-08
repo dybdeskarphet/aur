@@ -98,7 +98,7 @@ def compare_versions(v1: str, v2: str) -> int:
 def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> str:
     lines = [
         "| Package | Description | Repo Version | AUR Version | Status |",
-        "| :--- | :--- | :--- | :--- | :--- |",
+        "| :--- | :--- | :--- | :--- | :---: |",
     ]
 
     for pkg in sorted(packages, key=lambda x: x["name"]):
@@ -108,15 +108,15 @@ def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> s
         desc = pkg["desc"]
 
         if aur_ver == "Not Published":
-            status_badge = "![Not published](https://img.shields.io/badge/Not%20published-6e7681?style=flat-square&logo=dash&logoColor=white)"
+            status_badge = '![Not published](assets/dash-16.svg "Not published")'
         else:
             cmp_res = compare_versions(repo_ver, aur_ver)
             if cmp_res == 0:
-                status_badge = "![Synced](https://img.shields.io/badge/Synced-2da44e?style=flat-square&logo=check&logoColor=white)"
+                status_badge = '![In sync with AUR](assets/check-16.svg "In sync with AUR")'
             elif cmp_res > 0:
-                status_badge = "![Ahead of AUR](https://img.shields.io/badge/Ahead%20of%20AUR-0969da?style=flat-square&logo=rocket&logoColor=white)"
+                status_badge = '![Ahead of AUR](assets/arrow-up-16.svg "Ahead of AUR")'
             else:
-                status_badge = "![Out of date](https://img.shields.io/badge/Out%20of%20date-d97706?style=flat-square&logo=alert&logoColor=white)"
+                status_badge = '![Out of date](assets/clock-16.svg "Out of date")'
 
         aur_link = f"https://aur.archlinux.org/packages/{name}"
         lines.append(

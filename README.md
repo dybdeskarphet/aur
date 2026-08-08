@@ -11,10 +11,10 @@ Collection of Arch Linux User Repository (AUR) packages maintained by me.
 
 <!-- PACKAGES_TABLE_START -->
 | Package | Description | Repo Version | AUR Version | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.2.2-1` | `54.2.0-1` | ![Ahead of AUR](https://img.shields.io/badge/Ahead%20of%20AUR-0969da?style=flat-square&logo=rocket&logoColor=white) |
-| [**niri-companion**](https://aur.archlinux.org/packages/niri-companion) | Niri companion scripts: config generation, IPC extensions, workspace management | `5.0.0-1` | `5.0.0-1` | ![Synced](https://img.shields.io/badge/Synced-2da44e?style=flat-square&logo=check&logoColor=white) |
-| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `150.0.7871.186-1` | `150.0.7871.186-1` | ![Synced](https://img.shields.io/badge/Synced-2da44e?style=flat-square&logo=check&logoColor=white) |
+| :--- | :--- | :--- | :--- | :---: |
+| [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.2.2-1` | `54.2.0-1` | ![Ahead of AUR](assets/arrow-up-16.svg "Ahead of AUR") |
+| [**niri-companion**](https://aur.archlinux.org/packages/niri-companion) | Niri companion scripts: config generation, IPC extensions, workspace management | `5.0.0-1` | `5.0.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
+| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `150.0.7871.186-1` | `150.0.7871.186-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 <!-- PACKAGES_TABLE_END -->
 
 ## Automation & Workflow
