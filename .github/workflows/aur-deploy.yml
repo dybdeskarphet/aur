@@ -1,6 +1,12 @@
 name: Deploy Packages to AUR
 
 on:
+  workflow_run:
+    workflows: ["Check Upstream Updates & Verify Build"]
+    types:
+      - completed
+    branches:
+      - main
   push:
     branches:
       - main
@@ -13,6 +19,7 @@ on:
 jobs:
   sync-aur:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
