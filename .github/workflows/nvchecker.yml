@@ -1,0 +1,118 @@
+name: Check Upstream Updates & Verify Build
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    steps:
+      - name: Install dependencies
+        run: |
+          echo "" | pacman -Syu --needed --noconfirm base-devel git nvchecker python-packaging pacman-contrib sudo rsync
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure safe directory & builder user
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          useradd -m builder
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Run nvchecker
+        run: |
+          su builder -c "nvchecker -c nvchecker.toml"
+          su builder -c "nvcmp -c nvchecker.toml" > updates.txt || true
+          cat updates.txt
+
+      - name: Process Updates & Verify Builds
+        run: |
+          if [ ! -s updates.txt ]; then
+            echo "No package updates found."
+            exit 0
+          fi
+
+          updated_any=false
+
+          while read -r line; do
+            pkg=$(echo "$line" | awk '{print $1}')
+            oldver=$(echo "$line" | awk '{print $2}')
+            newver=$(echo "$line" | awk '{print $4}')
+
+            if [ -d "$GITHUB_WORKSPACE/$pkg" ]; then
+              echo "=========================================="
+              echo "Processing $pkg: $oldver -> $newver"
+              echo "=========================================="
+
+              cd "$GITHUB_WORKSPACE/$pkg"
+
+              if grep -q 'pkgver()' PKGBUILD; then
+                # -git package: let makepkg update PKGBUILD via pkgver()
+                if su builder -c "makepkg -s --noconfirm"; then
+                  su builder -c "makepkg --printsrcinfo" > .SRCINFO
+                  echo "SUCCESS: $pkg built successfully!"
+                  su builder -c "makepkg -c --noconfirm" || true
+                  rm -f *.pkg.tar.*
+
+                  cd "$GITHUB_WORKSPACE"
+                  su builder -c "nvtake -c nvchecker.toml $pkg"
+
+                  GIT_PKGVER=$(grep '^pkgver=' "$pkg/PKGBUILD" | cut -d= -f2)
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add "$pkg/" nvchecker.toml oldver.json
+                  git commit -m "update($pkg): update version to $GIT_PKGVER"
+                  updated_any=true
+                else
+                  echo "ERROR: Build failed for $pkg! Reverting changes."
+                  cd "$GITHUB_WORKSPACE/$pkg"
+                  git checkout -- PKGBUILD .SRCINFO
+                  cd "$GITHUB_WORKSPACE"
+                fi
+              else
+                # Standard release package
+                sed -i "s/^pkgver=.*/pkgver=$newver/" PKGBUILD
+                sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+
+                su builder -c "updpkgsums"
+                su builder -c "makepkg --printsrcinfo" > .SRCINFO
+
+                if su builder -c "makepkg -s --noconfirm"; then
+                  echo "SUCCESS: $pkg built successfully!"
+                  su builder -c "makepkg -c --noconfirm" || true
+                  rm -f *.pkg.tar.*
+
+                  cd "$GITHUB_WORKSPACE"
+                  su builder -c "nvtake -c nvchecker.toml $pkg"
+
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add "$pkg/" nvchecker.toml oldver.json
+                  git commit -m "update($pkg): update version to $newver"
+                  updated_any=true
+                else
+                  echo "ERROR: Build failed for $pkg ($newver)! Reverting changes."
+                  cd "$GITHUB_WORKSPACE/$pkg"
+                  git checkout -- PKGBUILD .SRCINFO
+                  cd "$GITHUB_WORKSPACE"
+                fi
+              fi
+            fi
+          done < updates.txt
+
+      - name: Push All Package Updates
+        run: |
+          if [ -n "$(git status --porcelain)" ] || git log origin/main..HEAD | grep -q .; then
+            git push origin main
+          else
+            echo "No successfully built version updates to push."
+          fi
