@@ -108,19 +108,19 @@ def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> s
         desc = pkg["desc"]
 
         if aur_ver == "Not Published":
-            status = "⚪ Not published"
+            status_badge = "![Not published](https://img.shields.io/badge/Status-Not%20published-6e7681?style=flat-square)"
         else:
             cmp_res = compare_versions(repo_ver, aur_ver)
             if cmp_res == 0:
-                status = "🟢 Synced"
+                status_badge = "![Synced](https://img.shields.io/badge/Status-Synced-brightgreen?style=flat-square)"
             elif cmp_res > 0:
-                status = "🔵 Ahead of AUR"
+                status_badge = "![Ahead of AUR](https://img.shields.io/badge/Status-Ahead%20of%20AUR-0969da?style=flat-square)"
             else:
-                status = "🟠 Out of date"
+                status_badge = "![Out of date](https://img.shields.io/badge/Status-Out%20of%20date-d97706?style=flat-square)"
 
         aur_link = f"https://aur.archlinux.org/packages/{name}"
         lines.append(
-            f"| [**{name}**]({aur_link}) | {desc} | `{repo_ver}` | `{aur_ver}` | {status} |"
+            f"| [**{name}**]({aur_link}) | {desc} | `{repo_ver}` | `{aur_ver}` | {status_badge} |"
         )
 
     return "\n".join(lines)
