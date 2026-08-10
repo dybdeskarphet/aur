@@ -37,47 +37,52 @@ jobs:
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
-      - name: Detect Updates & Create Batch Release
+      - name: Detect Unreleased Packages & Create Batch Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^packages/' | cut -d/ -f2 | sort -u || true)
+          ALL_PACKAGES=$(find packages -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
 
-          if [ -z "$CHANGED_DIRS" ]; then
-            echo "No package modifications found in HEAD commit."
-            echo "Skipping batch release creation."
+          if [ -z "$ALL_PACKAGES" ]; then
+            echo "No package directories found in packages/. Skipping release."
             exit 0
           fi
 
-          echo "Detected modified package directories in HEAD: $CHANGED_DIRS"
+          echo "Scanning packages: $ALL_PACKAGES"
 
-          # Fetch list of asset filenames across existing GitHub releases (if available)
-          RELEASE_ASSETS=$(gh api repos/:owner/:repo/releases --jq '.[].assets[].name' 2>/dev/null || true)
+          # Query asset filenames across all GitHub releases (using --paginate for complete history)
+          RELEASE_ASSETS=$(gh api repos/:owner/:repo/releases --paginate --jq '.[].assets[].name' 2>/dev/null || true)
 
           TO_BUILD=""
-          for pkg in $CHANGED_DIRS; do
+          for pkg in $ALL_PACKAGES; do
             PKGBUILD_PATH="packages/$pkg/PKGBUILD"
             if [ ! -f "$PKGBUILD_PATH" ]; then
+              echo "SKIP: No PKGBUILD found for $pkg."
               continue
             fi
 
-            PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
-            PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+            # Extract version from PKGBUILD
+            PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
+            PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
             
             EXPECTED_PREFIX="${pkg}-${PKGVER}-${PKGREL}"
 
+            # Exact matching against published package filenames (e.g. gams-54.2.2-1-x86_64.pkg.tar.zst)
             if [ -n "$RELEASE_ASSETS" ] && echo "$RELEASE_ASSETS" | grep -q "^${EXPECTED_PREFIX}-"; then
-              echo "SKIP: $EXPECTED_PREFIX has already been published in a previous release."
+              echo "SKIP: $EXPECTED_PREFIX is already published in GitHub Releases."
             else
-              echo "NEED RELEASE: $pkg ($PKGVER-$PKGREL)"
+              echo "UNRELEASED: $pkg ($PKGVER-$PKGREL) needs to be built and released!"
               TO_BUILD="$TO_BUILD $pkg"
             fi
           done
 
           if [ -z "$TO_BUILD" ]; then
-            echo "All modified package versions are already published. No new release tag will be created."
+            echo "All packages in packages/ are already published to GitHub Releases."
+            echo "No new release tag will be created."
             exit 0
           fi
+
+          echo "Packages scheduled for build and release: $TO_BUILD"
 
           mkdir -p "$GITHUB_WORKSPACE/dist"
           BUILT_PACKAGES=""
@@ -89,7 +94,7 @@ jobs:
 
             cd "$GITHUB_WORKSPACE/packages/$pkg"
             if su builder -c "makepkg -s --noconfirm"; then
-              echo "SUCCESS: $pkg built successfully!"
+              echo "SUCCESS: Built $pkg successfully!"
               cp *.pkg.tar.* "$GITHUB_WORKSPACE/dist/"
               su builder -c "makepkg -c --noconfirm" || true
               rm -f *.pkg.tar.*
@@ -101,7 +106,7 @@ jobs:
           done
 
           if [ -z "$(ls -A "$GITHUB_WORKSPACE/dist"/*.pkg.tar.* 2>/dev/null)" ]; then
-            echo "No package binaries were produced. Skipping batch release creation."
+            echo "No package binaries were built successfully. Skipping batch release creation."
             exit 0
           fi
 
@@ -109,14 +114,14 @@ jobs:
           RELEASE_TITLE="Package Release — $(date -u +'%Y-%m-%d %H:%M UTC')"
 
           {
-            echo "### 📦 Published Packages"
+            echo "### 📦 Published Packages in this Release"
             echo ""
             echo "| Package | Version | Description |"
             echo "| :--- | :--- | :--- |"
             for pkg in $BUILT_PACKAGES; do
               PKGBUILD_PATH="packages/$pkg/PKGBUILD"
-              PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
-              PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+              PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
+              PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
               PKGDESC=$(grep '^pkgdesc=' "$PKGBUILD_PATH" | head -n1 | cut -d= -f2- | tr -d "'\"")
               echo "| **$pkg** | \`${PKGVER}-${PKGREL}\` | $PKGDESC |"
             done
