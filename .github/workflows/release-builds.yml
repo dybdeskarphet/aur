@@ -1,0 +1,133 @@
+name: Build & Publish Release Packages
+
+on:
+  workflow_run:
+    workflows: ["Check Upstream Updates & Verify Build"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    container:
+      image: archlinux:latest
+      options: --privileged
+
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --needed --noconfirm base-devel git github-cli jq pacman-contrib sudo rsync
+
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure safe directory & builder user
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          useradd -m builder || true
+          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Detect Updates & Create Batch Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CHANGED_DIRS=$(git diff-tree --no-commit-id --name-only -r HEAD | grep '^packages/' | cut -d/ -f2 | sort -u || true)
+
+          if [ -z "$CHANGED_DIRS" ]; then
+            echo "No package modifications found in HEAD commit."
+            echo "Skipping batch release creation."
+            exit 0
+          fi
+
+          echo "Detected modified package directories in HEAD: $CHANGED_DIRS"
+
+          # Fetch list of asset filenames across existing GitHub releases (if available)
+          RELEASE_ASSETS=$(gh api repos/:owner/:repo/releases --jq '.[].assets[].name' 2>/dev/null || true)
+
+          TO_BUILD=""
+          for pkg in $CHANGED_DIRS; do
+            PKGBUILD_PATH="packages/$pkg/PKGBUILD"
+            if [ ! -f "$PKGBUILD_PATH" ]; then
+              continue
+            fi
+
+            PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+            PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+            
+            EXPECTED_PREFIX="${pkg}-${PKGVER}-${PKGREL}"
+
+            if [ -n "$RELEASE_ASSETS" ] && echo "$RELEASE_ASSETS" | grep -q "^${EXPECTED_PREFIX}-"; then
+              echo "SKIP: $EXPECTED_PREFIX has already been published in a previous release."
+            else
+              echo "NEED RELEASE: $pkg ($PKGVER-$PKGREL)"
+              TO_BUILD="$TO_BUILD $pkg"
+            fi
+          done
+
+          if [ -z "$TO_BUILD" ]; then
+            echo "All modified package versions are already published. No new release tag will be created."
+            exit 0
+          fi
+
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          BUILT_PACKAGES=""
+
+          for pkg in $TO_BUILD; do
+            echo "=========================================="
+            echo "Building package binary for: $pkg"
+            echo "=========================================="
+
+            cd "$GITHUB_WORKSPACE/packages/$pkg"
+            if su builder -c "makepkg -s --noconfirm"; then
+              echo "SUCCESS: $pkg built successfully!"
+              cp *.pkg.tar.* "$GITHUB_WORKSPACE/dist/"
+              su builder -c "makepkg -c --noconfirm" || true
+              rm -f *.pkg.tar.*
+              BUILT_PACKAGES="$BUILT_PACKAGES $pkg"
+            else
+              echo "ERROR: makepkg failed for $pkg!"
+            fi
+            cd "$GITHUB_WORKSPACE"
+          done
+
+          if [ -z "$(ls -A "$GITHUB_WORKSPACE/dist"/*.pkg.tar.* 2>/dev/null)" ]; then
+            echo "No package binaries were produced. Skipping batch release creation."
+            exit 0
+          fi
+
+          RELEASE_TAG="build-$(date -u +'%Y.%m.%d-%H%M%S')"
+          RELEASE_TITLE="Package Release — $(date -u +'%Y-%m-%d %H:%M UTC')"
+
+          {
+            echo "### 📦 Published Packages"
+            echo ""
+            echo "| Package | Version | Description |"
+            echo "| :--- | :--- | :--- |"
+            for pkg in $BUILT_PACKAGES; do
+              PKGBUILD_PATH="packages/$pkg/PKGBUILD"
+              PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+              PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\"")
+              PKGDESC=$(grep '^pkgdesc=' "$PKGBUILD_PATH" | head -n1 | cut -d= -f2- | tr -d "'\"")
+              echo "| **$pkg** | \`${PKGVER}-${PKGREL}\` | $PKGDESC |"
+            done
+            echo ""
+            echo "---"
+            echo "_Automated batch release created by GitHub Actions._"
+          } > "$GITHUB_WORKSPACE/release_notes.md"
+
+          echo "Publishing Batch GitHub Release: $RELEASE_TAG..."
+          gh release create "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/*.pkg.tar.* \
+            --title "$RELEASE_TITLE" \
+            --notes-file "$GITHUB_WORKSPACE/release_notes.md"
+
+          echo "SUCCESS: Created batch release $RELEASE_TAG!"
