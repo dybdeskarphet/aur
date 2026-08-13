@@ -18,3 +18,14 @@ github = "ungoogled-software/ungoogled-chromium-archlinux"
 use_latest_release = true
 from_pattern = '^(\d+\.\d+\.\d+\.\d+)-\d+$'
 to_pattern = '\1'
+
+[deskreen-ce-bin]
+source = "github"
+github = "pavlobu/deskreen"
+use_latest_release = true
+prefix = "v"
+
+[gtkcsslanguageserver-git]
+source = "github"
+github = "JCWasmx86/GTKCssLanguageServer"
+use_latest_commit = true
