@@ -12,7 +12,7 @@ Collection of Arch Linux User Repository (AUR) packages maintained by me.
 <!-- PACKAGES_TABLE_START -->
 | Package | Description | Repo Version | AUR Version | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| [**deskreen-ce-bin**](https://aur.archlinux.org/packages/deskreen-ce-bin) | Turn any device into a secondary screen for your computer - Community Edition (binary release) | `3.2.16-1` | `3.2.1-1` | ![Ahead of AUR](assets/arrow-up-16.svg "Ahead of AUR") |
+| [**deskreen-ce-bin**](https://aur.archlinux.org/packages/deskreen-ce-bin) | Turn any device into a secondary screen for your computer - Community Edition (binary release) | `3.2.16-1` | `3.2.16-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.2.2-1` | `54.2.2-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gtkcsslanguageserver-git**](https://aur.archlinux.org/packages/gtkcsslanguageserver-git) | Language server for the GTK CSS flavor | `0.1.0.r111.gdcbe750-1` | `0.1.0.r111.gdcbe750-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**niri-companion**](https://aur.archlinux.org/packages/niri-companion) | Niri companion scripts: config generation, IPC extensions, workspace management | `5.0.0-1` | `5.0.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
