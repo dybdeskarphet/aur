@@ -1,6 +1,11 @@
 {
   "version": 2,
   "data": {
+    "deskreen-ce-bin": {
+      "version": "3.2.16",
+      "gitref": "refs/tags/v3.2.16",
+      "url": "https://github.com/pavlobu/deskreen/releases/tag/v3.2.16"
+    },
     "gams": {
       "version": "54.2.2",
       "url": "https://pypi.org/project/gamspy-base/54.2.2/"
