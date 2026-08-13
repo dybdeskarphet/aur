@@ -10,6 +10,11 @@
       "version": "54.2.2",
       "url": "https://pypi.org/project/gamspy-base/54.2.2/"
     },
+    "gtkcsslanguageserver-git": {
+      "version": "20231218.154301",
+      "revision": "dcbe75012d2d26fbca2729cee014e4860e31fa53",
+      "url": "https://github.com/JCWasmx86/GTKCssLanguageServer/commit/dcbe75012d2d26fbca2729cee014e4860e31fa53"
+    },
     "niri-companion": {
       "version": "5.0.0"
     },
