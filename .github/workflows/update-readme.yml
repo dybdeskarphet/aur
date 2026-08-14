@@ -2,7 +2,7 @@ name: Update README Package Table
 
 on:
   workflow_run:
-    workflows: ["Deploy Packages to AUR"]
+    workflows: ["Check Upstream Updates & Verify Build", "Deploy Packages to AUR"]
     types:
       - completed
     branches:
