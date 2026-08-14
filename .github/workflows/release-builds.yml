@@ -96,9 +96,8 @@ jobs:
                       cp "$f" "$GITHUB_WORKSPACE/dist/"
                     fi
                   done
-                else
-                  cp "${pkg}"-*.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
                 fi
+                cp *.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
 
                 su builder -c "makepkg -c --noconfirm" || true
                 rm -f *.pkg.tar.*
@@ -124,7 +123,8 @@ jobs:
           rm -f "${REPO_NAME}".db* "${REPO_NAME}".files*
           repo-add "${REPO_NAME}.db.tar.zst" *.pkg.tar.*
 
-          # Copy database archives to uncompressed names for pacman URL compatibility
+          # Remove symlinks created by repo-add and replace with real file copies
+          rm -f "${REPO_NAME}.db" "${REPO_NAME}.files"
           cp -f "${REPO_NAME}.db.tar.zst" "${REPO_NAME}.db"
           cp -f "${REPO_NAME}.files.tar.zst" "${REPO_NAME}.files"
 
