@@ -1,4 +1,4 @@
-name: Build & Publish Release Packages
+name: Build & Publish Pacman Repository
 
 on:
   workflow_run:
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build-and-publish-repo:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     container:
@@ -21,7 +21,7 @@ jobs:
       options: --privileged
 
     steps:
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           pacman -Syu --needed --noconfirm base-devel git github-cli jq pacman-contrib sudo rsync
 
@@ -37,118 +37,143 @@ jobs:
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
-      - name: Detect Unreleased Packages & Create Batch Release
+      - name: Build packages & update repository database
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: "dybdeskarphet"
+          RELEASE_TAG: "packages"
         run: |
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cd "$GITHUB_WORKSPACE/dist"
+
+          echo "=========================================="
+          echo "Fetching existing repository assets..."
+          echo "=========================================="
+          # Download all existing packages & databases from the 'packages' release if it exists
+          gh release download "$RELEASE_TAG" --dir "$GITHUB_WORKSPACE/dist" 2>/dev/null || echo "No existing 'packages' release found. Initializing new repository."
+
+          cd "$GITHUB_WORKSPACE"
           ALL_PACKAGES=$(find packages -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
 
           if [ -z "$ALL_PACKAGES" ]; then
-            echo "No package directories found in packages/. Skipping release."
+            echo "No package directories found in packages/."
             exit 0
           fi
 
-          echo "Scanning packages: $ALL_PACKAGES"
+          NEWLY_BUILT=false
 
-          # Query asset filenames across all GitHub releases (using --paginate for complete history)
-          RELEASE_ASSETS=$(gh api repos/:owner/:repo/releases --paginate --jq '.[].assets[].name' 2>/dev/null || true)
-
-          TO_BUILD=""
           for pkg in $ALL_PACKAGES; do
             PKGBUILD_PATH="packages/$pkg/PKGBUILD"
             if [ ! -f "$PKGBUILD_PATH" ]; then
-              echo "SKIP: No PKGBUILD found for $pkg."
               continue
             fi
 
-            # Extract version from PKGBUILD
             PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
             PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
-            
             EXPECTED_PREFIX="${pkg}-${PKGVER}-${PKGREL}"
 
-            # Exact matching against published package filenames (e.g. ungoogled-chromium-widevine-bin-151.0.7922.108-1-x86_64.pkg.tar.zst)
-            if [ -n "$RELEASE_ASSETS" ] && echo "$RELEASE_ASSETS" | grep -q "^${EXPECTED_PREFIX}-"; then
-              echo "SKIP: $EXPECTED_PREFIX is already published in GitHub Releases."
+            # Check if this exact package binary already exists in dist/
+            if ls "$GITHUB_WORKSPACE/dist/${EXPECTED_PREFIX}-"*.pkg.tar.* 1>/dev/null 2>&1; then
+              echo "SKIP: $EXPECTED_PREFIX is already built and up-to-date in repository."
             else
-              echo "UNRELEASED: $pkg ($PKGVER-$PKGREL) needs to be built and released!"
-              TO_BUILD="$TO_BUILD $pkg"
-            fi
-          done
+              echo "=========================================="
+              echo "Building: $pkg ($PKGVER-$PKGREL)"
+              echo "=========================================="
 
-          if [ -z "$TO_BUILD" ]; then
-            echo "All packages in packages/ are already published to GitHub Releases."
-            echo "No new release tag will be created."
-            exit 0
-          fi
+              # Remove old versions of this package from dist/
+              rm -f "$GITHUB_WORKSPACE/dist/${pkg}-"*.pkg.tar.* || true
 
-          echo "Packages scheduled for build and release: $TO_BUILD"
+              cd "$GITHUB_WORKSPACE/packages/$pkg"
+              TARGET_PKGS=$(su builder -c "makepkg --packagelist" 2>/dev/null || true)
 
-          mkdir -p "$GITHUB_WORKSPACE/dist"
-          BUILT_PACKAGES=""
+              if su builder -c "makepkg -s --noconfirm"; then
+                echo "SUCCESS: Built $pkg successfully!"
+                NEWLY_BUILT=true
 
-          for pkg in $TO_BUILD; do
-            echo "=========================================="
-            echo "Building package binary for: $pkg"
-            echo "=========================================="
+                if [ -n "$TARGET_PKGS" ]; then
+                  for f in $TARGET_PKGS; do
+                    if [ -f "$f" ]; then
+                      cp "$f" "$GITHUB_WORKSPACE/dist/"
+                    fi
+                  done
+                else
+                  cp "${pkg}"-*.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
+                fi
 
-            cd "$GITHUB_WORKSPACE/packages/$pkg"
-
-            # Query the exact target package filepath(s) generated by makepkg
-            TARGET_PKGS=$(su builder -c "makepkg --packagelist" 2>/dev/null || true)
-
-            if su builder -c "makepkg -s --noconfirm"; then
-              echo "SUCCESS: Built $pkg successfully!"
-              
-              if [ -n "$TARGET_PKGS" ]; then
-                for f in $TARGET_PKGS; do
-                  if [ -f "$f" ]; then
-                    echo "Copying built package: $f"
-                    cp "$f" "$GITHUB_WORKSPACE/dist/"
-                  fi
-                done
+                su builder -c "makepkg -c --noconfirm" || true
+                rm -f *.pkg.tar.*
               else
-                # Fallback matching strictly by package name prefix
-                cp "${pkg}"-*.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
+                echo "ERROR: Build failed for $pkg!"
               fi
-
-              su builder -c "makepkg -c --noconfirm" || true
-              rm -f *.pkg.tar.*
-              BUILT_PACKAGES="$BUILT_PACKAGES $pkg"
-            else
-              echo "ERROR: makepkg failed for $pkg!"
+              cd "$GITHUB_WORKSPACE"
             fi
-            cd "$GITHUB_WORKSPACE"
           done
 
-          if [ -z "$(ls -A "$GITHUB_WORKSPACE/dist"/*.pkg.tar.* 2>/dev/null)" ]; then
-            echo "No package binaries were built successfully. Skipping batch release creation."
+          cd "$GITHUB_WORKSPACE/dist"
+          AVAILABLE_PKGS=$(ls *.pkg.tar.* 2>/dev/null | grep -v "\.db" | grep -v "\.files" || true)
+
+          if [ -z "$AVAILABLE_PKGS" ]; then
+            echo "No package binaries available in dist/. Skipping repository publication."
             exit 0
           fi
 
-          RELEASE_TAG="build-$(date -u +'%Y.%m.%d-%H%M%S')"
-          RELEASE_TITLE="Package Release — $(date -u +'%Y-%m-%d %H:%M UTC')"
+          echo "=========================================="
+          echo "Generating Pacman repository database..."
+          echo "=========================================="
+          # Recreate repository database fresh from all available packages
+          rm -f "${REPO_NAME}".db* "${REPO_NAME}".files*
+          repo-add "${REPO_NAME}.db.tar.zst" *.pkg.tar.*
 
+          # Copy database archives to uncompressed names for pacman URL compatibility
+          cp -f "${REPO_NAME}.db.tar.zst" "${REPO_NAME}.db"
+          cp -f "${REPO_NAME}.files.tar.zst" "${REPO_NAME}.files"
+
+          echo "=========================================="
+          echo "Publishing to GitHub Release ($RELEASE_TAG)..."
+          echo "=========================================="
+
+          # Generate release notes with pacman.conf instructions & package list
           {
-            echo "### 📦 Published Packages in this Release"
+            echo "### 📦 Arch Linux Custom Pacman Repository"
             echo ""
-            echo "| Package | Version | Description |"
-            echo "| :--- | :--- | :--- |"
-            for pkg in $BUILT_PACKAGES; do
-              PKGBUILD_PATH="packages/$pkg/PKGBUILD"
-              PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
-              PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
-              PKGDESC=$(grep '^pkgdesc=' "$PKGBUILD_PATH" | head -n1 | cut -d= -f2- | tr -d "'\"")
-              echo "| **$pkg** | \`${PKGVER}-${PKGREL}\` | $PKGDESC |"
+            echo "This release hosts pre-compiled binary packages and the Pacman repository database for \`$REPO_NAME\`."
+            echo ""
+            echo "#### ⚙️ How to Add to \`/etc/pacman.conf\`"
+            echo "\`\`\`ini"
+            echo "[$REPO_NAME]"
+            echo "SigLevel = Optional TrustAll"
+            echo "Server = https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG"
+            echo "\`\`\`"
+            echo ""
+            echo "Then run: \`sudo pacman -Syy\`"
+            echo ""
+            echo "#### 📋 Available Packages in this Repository"
+            echo ""
+            echo "| Package | File |"
+            echo "| :--- | :--- |"
+            for f in *.pkg.tar.*; do
+              if [[ "$f" != *.db* && "$f" != *.files* ]]; then
+                echo "| **${f%%-*-*-*}** | \`$f\` |"
+              fi
             done
             echo ""
             echo "---"
-            echo "_Automated batch release created by GitHub Actions._"
+            echo "_Automated Pacman repository maintained by GitHub Actions._"
           } > "$GITHUB_WORKSPACE/release_notes.md"
 
-          echo "Publishing Batch GitHub Release: $RELEASE_TAG..."
-          gh release create "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/*.pkg.tar.* \
-            --title "$RELEASE_TITLE" \
-            --notes-file "$GITHUB_WORKSPACE/release_notes.md"
+          # Create or update the release
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Creating initial release: $RELEASE_TAG"
+            gh release create "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/* \
+              --title "Arch Linux Pacman Repository ($REPO_NAME)" \
+              --notes-file "$GITHUB_WORKSPACE/release_notes.md"
+          else
+            echo "Updating existing release: $RELEASE_TAG"
+            gh release edit "$RELEASE_TAG" \
+              --title "Arch Linux Pacman Repository ($REPO_NAME)" \
+              --notes-file "$GITHUB_WORKSPACE/release_notes.md"
 
-          echo "SUCCESS: Created batch release $RELEASE_TAG!"
+            gh release upload "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/* --clobber
+          fi
+
+          echo "SUCCESS: Pacman repository published successfully!"
