@@ -134,11 +134,11 @@ jobs:
 
           # Generate release notes with pacman.conf instructions & package list
           {
-            echo "### 📦 Arch Linux Custom Pacman Repository"
+            echo "### Arch Linux Custom Pacman Repository"
             echo ""
             echo "This release hosts pre-compiled binary packages and the Pacman repository database for \`$REPO_NAME\`."
             echo ""
-            echo "#### ⚙️ How to Add to \`/etc/pacman.conf\`"
+            echo "#### How to Add to \`/etc/pacman.conf\`"
             echo "\`\`\`ini"
             echo "[$REPO_NAME]"
             echo "SigLevel = Optional TrustAll"
@@ -147,7 +147,7 @@ jobs:
             echo ""
             echo "Then run: \`sudo pacman -Syy\`"
             echo ""
-            echo "#### 📋 Available Packages in this Repository"
+            echo "#### Available Packages in this Repository"
             echo ""
             echo "| Package | File |"
             echo "| :--- | :--- |"
