@@ -128,10 +128,10 @@ jobs:
           rm -f "${REPO_NAME}".db* "${REPO_NAME}".files*
           repo-add "${REPO_NAME}.db.tar.zst" *.pkg.tar.*
 
-          # Remove symlinks created by repo-add and replace with real file copies
+          # Remove symlinks created by repo-add and keep ONLY clean .db and .files database archives
           rm -f "${REPO_NAME}.db" "${REPO_NAME}.files"
-          cp -f "${REPO_NAME}.db.tar.zst" "${REPO_NAME}.db"
-          cp -f "${REPO_NAME}.files.tar.zst" "${REPO_NAME}.files"
+          mv -f "${REPO_NAME}.db.tar.zst" "${REPO_NAME}.db"
+          mv -f "${REPO_NAME}.files.tar.zst" "${REPO_NAME}.files"
 
           echo "=========================================="
           echo "Publishing to GitHub Release ($RELEASE_TAG)..."
@@ -167,7 +167,7 @@ jobs:
             done
             echo ""
             echo "---"
-            echo "_Automated Pacman repository maintained by GitHub Actions._"
+            echo "_Maintained by GitHub Actions_"
           } > "$GITHUB_WORKSPACE/release_notes.md"
 
           # Create or update the release
@@ -181,6 +181,10 @@ jobs:
             gh release edit "$RELEASE_TAG" \
               --title "Arch Linux Pacman Repository ($REPO_NAME)" \
               --notes-file "$GITHUB_WORKSPACE/release_notes.md"
+
+            # Remove redundant .tar.zst database assets from release
+            gh release delete-asset "$RELEASE_TAG" "${REPO_NAME}.db.tar.zst" --yes 2>/dev/null || true
+            gh release delete-asset "$RELEASE_TAG" "${REPO_NAME}.files.tar.zst" --yes 2>/dev/null || true
 
             gh release upload "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/* --clobber
           fi
