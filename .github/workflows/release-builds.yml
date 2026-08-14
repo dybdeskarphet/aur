@@ -96,8 +96,9 @@ jobs:
                       cp "$f" "$GITHUB_WORKSPACE/dist/"
                     fi
                   done
+                else
+                  cp "${pkg}-${PKGVER}-${PKGREL}-"*.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
                 fi
-                cp *.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
 
                 su builder -c "makepkg -c --noconfirm" || true
                 rm -f *.pkg.tar.*
@@ -109,6 +110,9 @@ jobs:
           done
 
           cd "$GITHUB_WORKSPACE/dist"
+          # Remove any debug packages or source tarballs from repository index
+          rm -f *-debug-*.pkg.tar.* || true
+
           AVAILABLE_PKGS=$(ls *.pkg.tar.* 2>/dev/null | grep -v "\.db" | grep -v "\.files" || true)
 
           if [ -z "$AVAILABLE_PKGS" ]; then
@@ -132,7 +136,7 @@ jobs:
           echo "Publishing to GitHub Release ($RELEASE_TAG)..."
           echo "=========================================="
 
-          # Generate release notes with pacman.conf instructions & package list
+          # Generate release notes with pacman.conf instructions & clean package list
           {
             echo "### Arch Linux Custom Pacman Repository"
             echo ""
@@ -149,11 +153,15 @@ jobs:
             echo ""
             echo "#### Available Packages in this Repository"
             echo ""
-            echo "| Package | File |"
-            echo "| :--- | :--- |"
-            for f in *.pkg.tar.*; do
-              if [[ "$f" != *.db* && "$f" != *.files* ]]; then
-                echo "| **${f%%-*-*-*}** | \`$f\` |"
+            echo "| Package | Version | Description |"
+            echo "| :--- | :--- | :--- |"
+            for pkg in $ALL_PACKAGES; do
+              PKGBUILD_PATH="$GITHUB_WORKSPACE/packages/$pkg/PKGBUILD"
+              if [ -f "$PKGBUILD_PATH" ]; then
+                PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | sed -e "s/^[ \t'\"]*//" -e "s/[ \t'\"]*$//")
+                PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | sed -e "s/^[ \t'\"]*//" -e "s/[ \t'\"]*$//")
+                PKGDESC=$(grep '^pkgdesc=' "$PKGBUILD_PATH" | head -n1 | cut -d= -f2- | sed -e "s/^[ \t'\"]*//" -e "s/[ \t'\"]*$//")
+                echo "| **$pkg** | \`${PKGVER}-${PKGREL}\` | $PKGDESC |"
               fi
             done
             echo ""
