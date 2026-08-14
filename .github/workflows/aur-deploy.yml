@@ -67,6 +67,11 @@ jobs:
               continue
             fi
 
+            if [ -f "packages/$pkg/.noaur" ]; then
+              echo "SKIP: $pkg contains .noaur marker (local repository only)."
+              continue
+            fi
+
             echo "=========================================="
             echo "Processing changed package: $pkg"
             echo "=========================================="

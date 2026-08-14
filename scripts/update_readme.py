@@ -28,10 +28,13 @@ def parse_pkgbuild(pkg_dir: Path) -> dict:
 
     ver_str = f"{epoch}:{pkgver}-{pkgrel}" if epoch else f"{pkgver}-{pkgrel}"
 
+    noaur = (pkg_dir / ".noaur").exists()
+
     return {
         "name": pkg_dir.name,
         "repo_ver": ver_str,
         "desc": desc,
+        "noaur": noaur,
     }
 
 
@@ -104,8 +107,18 @@ def generate_markdown_table(packages: list[dict], aur_info: dict[str, str]) -> s
     for pkg in sorted(packages, key=lambda x: x["name"]):
         name = pkg["name"]
         repo_ver = pkg["repo_ver"]
-        aur_ver = aur_info.get(name, "Not Published")
         desc = pkg["desc"]
+
+        if pkg.get("noaur"):
+            aur_ver = "Repo Only"
+            status_badge = '![Repo Only](assets/dash-16.svg "Repo Only")'
+            pkg_link = f"packages/{name}"
+            lines.append(
+                f"| [**{name}**]({pkg_link}) | {desc} | `{repo_ver}` | `{aur_ver}` | {status_badge} |"
+            )
+            continue
+
+        aur_ver = aur_info.get(name, "Not Published")
 
         if aur_ver == "Not Published":
             status_badge = '![Not published](assets/dash-16.svg "Not published")'
