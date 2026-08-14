@@ -3,6 +3,12 @@ name: Check Upstream Updates & Verify Build
 on:
   schedule:
     - cron: '0 3 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+      - 'nvchecker.toml'
   workflow_dispatch:
 
 permissions:
