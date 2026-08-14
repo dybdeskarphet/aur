@@ -35,6 +35,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           useradd -m builder || true
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          sed -i 's/\bdebug\b/!debug/g' /etc/makepkg.conf || true
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Build packages & update repository database
@@ -68,8 +69,8 @@ jobs:
               continue
             fi
 
-            PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
-            PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | tr -d "'\" ")
+            PKGVER=$(grep '^pkgver=' "$PKGBUILD_PATH" | cut -d= -f2 | sed -e "s/^[ \t'\"]*//" -e "s/[ \t'\"]*$//")
+            PKGREL=$(grep '^pkgrel=' "$PKGBUILD_PATH" | cut -d= -f2 | sed -e "s/^[ \t'\"]*//" -e "s/[ \t'\"]*$//")
             EXPECTED_PREFIX="${pkg}-${PKGVER}-${PKGREL}"
 
             # Check if this exact package binary already exists in dist/
@@ -92,7 +93,7 @@ jobs:
 
                 if [ -n "$TARGET_PKGS" ]; then
                   for f in $TARGET_PKGS; do
-                    if [ -f "$f" ]; then
+                    if [ -f "$f" ] && [[ "$f" != *-debug-*.pkg.tar.* ]]; then
                       cp "$f" "$GITHUB_WORKSPACE/dist/"
                     fi
                   done

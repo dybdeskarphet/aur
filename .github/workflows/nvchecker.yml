@@ -28,6 +28,7 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+          sed -i 's/\bdebug\b/!debug/g' /etc/makepkg.conf || true
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Run nvchecker
