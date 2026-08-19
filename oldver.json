@@ -10,8 +10,9 @@
       "url": "https://github.com/pavlobu/deskreen/releases/tag/v3.2.16"
     },
     "gams": {
-      "version": "54.2.2",
-      "url": "https://pypi.org/project/gamspy-base/54.2.2/"
+      "version": "54.3.0",
+      "url": "https://pypi.org/project/gamspy-base/54.3.0/",
+      "creation_time": "2026-08-18T20:45:43.800527Z"
     },
     "gtkcsslanguageserver-git": {
       "version": "20231218.154301",
