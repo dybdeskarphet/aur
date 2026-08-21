@@ -13,7 +13,7 @@ Collection of AUR packages maintained by me.
 <!-- PACKAGES_TABLE_START -->
 | Package | Description | Repo Version | AUR Version | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| [**antigravity-cli**](packages/antigravity-cli) | Google's agentic development platform (CLI companion) | `1.1.15_5350383476932608-1` | `Repo Only` | ![Repo Only](assets/dash-16.svg "Repo Only") |
+| [**antigravity-cli**](packages/antigravity-cli) | Google's agentic development platform (CLI companion) | `1.1.17_5084709148033024-1` | `Repo Only` | ![Repo Only](assets/dash-16.svg "Repo Only") |
 | [**deskreen-ce-bin**](https://aur.archlinux.org/packages/deskreen-ce-bin) | Turn any device into a secondary screen for your computer - Community Edition (binary release) | `3.2.16-1` | `3.2.16-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.3.0-1` | `54.3.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gtkcsslanguageserver-git**](https://aur.archlinux.org/packages/gtkcsslanguageserver-git) | Language server for the GTK CSS flavor | `0.1.0.r111.gdcbe750-1` | `0.1.0.r111.gdcbe750-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
