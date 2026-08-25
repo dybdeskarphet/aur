@@ -18,7 +18,7 @@ Collection of AUR packages maintained by me.
 | [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.3.1-1` | `54.3.1-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gtkcsslanguageserver-git**](https://aur.archlinux.org/packages/gtkcsslanguageserver-git) | Language server for the GTK CSS flavor | `0.1.0.r111.gdcbe750-1` | `0.1.0.r111.gdcbe750-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**niri-companion**](https://aur.archlinux.org/packages/niri-companion) | Niri companion scripts: config generation, IPC extensions, workspace management | `5.0.0-1` | `5.0.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
-| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `151.0.7922.173-1` | `151.0.7922.169-1` | ![Ahead of AUR](assets/arrow-up-16.svg "Ahead of AUR") |
+| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `151.0.7922.173-1` | `151.0.7922.173-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 <!-- PACKAGES_TABLE_END -->
 
 ## Automation & Workflow
