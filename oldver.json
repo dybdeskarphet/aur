@@ -27,6 +27,12 @@
       "gitref": "refs/tags/152.0.7977.75-1",
       "url": "https://github.com/ungoogled-software/ungoogled-chromium-archlinux/releases/tag/152.0.7977.75-1",
       "creation_time": "2026-09-04T03:15:26Z"
+    },
+    "write_stylus": {
+      "version": "jul.2025",
+      "gitref": "refs/tags/jul-2025",
+      "revision": "d6a43f56b3635fbe13930ddb7c2ab57eea0787b1",
+      "url": "https://github.com/styluslabs/Write/releases/tag/jul-2025"
     }
   }
 }

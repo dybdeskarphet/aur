@@ -36,3 +36,10 @@ url = "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/man
 filter = ".url | split(\"/\")[5]"
 from_pattern = "-"
 to_pattern = "_"
+
+[write_stylus]
+source = "jq"
+url = "https://api.github.com/repos/styluslabs/Write/tags"
+filter = ".[0].name"
+from_pattern = "-"
+to_pattern = "."
