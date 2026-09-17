@@ -13,12 +13,12 @@ Collection of AUR packages maintained by me.
 <!-- PACKAGES_TABLE_START -->
 | Package | Description | Repo Version | AUR Version | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| [**antigravity-cli**](packages/antigravity-cli) | Google's agentic development platform (CLI companion) | `1.2.4_6085322963025920-1` | `Repo Only` | ![Repo Only](assets/dash-16.svg "Repo Only") |
+| [**antigravity-cli**](packages/antigravity-cli) | Google's agentic development platform (CLI companion) | `1.2.5_4931130160447488-1` | `Repo Only` | ![Repo Only](assets/dash-16.svg "Repo Only") |
 | [**deskreen-ce-bin**](https://aur.archlinux.org/packages/deskreen-ce-bin) | Turn any device into a secondary screen for your computer - Community Edition (binary release) | `3.2.16-1` | `3.2.16-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gams**](https://aur.archlinux.org/packages/gams) | A high-level modeling system for mathematical optimization | `54.4.0-1` | `54.4.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**gtkcsslanguageserver-git**](https://aur.archlinux.org/packages/gtkcsslanguageserver-git) | Language server for the GTK CSS flavor | `0.1.0.r111.gdcbe750-1` | `0.1.0.r111.gdcbe750-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 | [**niri-companion**](https://aur.archlinux.org/packages/niri-companion) | Niri companion scripts: config generation, IPC extensions, workspace management | `5.0.0-1` | `5.0.0-1` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
-| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `152.0.7977.75-2` | `152.0.7977.75-2` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
+| [**ungoogled-chromium-widevine-bin**](https://aur.archlinux.org/packages/ungoogled-chromium-widevine-bin) | A lightweight approach to removing Google web service dependency (with Widevine) | `153.0.8010.47-1` | `152.0.7977.75-2` | ![Ahead of AUR](assets/arrow-up-16.svg "Ahead of AUR") |
 | [**write_stylus**](https://aur.archlinux.org/packages/write_stylus) | Write(orignal name) - A word processor for handwriting | `jul.2025-2` | `jul.2025-2` | ![In sync with AUR](assets/check-16.svg "In sync with AUR") |
 <!-- PACKAGES_TABLE_END -->
 
