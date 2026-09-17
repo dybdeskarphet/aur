@@ -23,10 +23,10 @@
       "version": "5.0.0"
     },
     "ungoogled-chromium-widevine-bin": {
-      "version": "152.0.7977.75",
-      "gitref": "refs/tags/152.0.7977.75-1",
-      "url": "https://github.com/ungoogled-software/ungoogled-chromium-archlinux/releases/tag/152.0.7977.75-1",
-      "creation_time": "2026-09-04T03:15:26Z"
+      "version": "153.0.8010.47",
+      "gitref": "refs/tags/153.0.8010.47-1",
+      "url": "https://github.com/ungoogled-software/ungoogled-chromium-archlinux/releases/tag/153.0.8010.47-1",
+      "creation_time": "2026-09-17T03:06:19Z"
     },
     "write_stylus": {
       "version": "jul.2025",
