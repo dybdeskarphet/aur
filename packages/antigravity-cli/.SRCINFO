@@ -1,6 +1,6 @@
 pkgbase = antigravity-cli
 	pkgdesc = Google's agentic development platform (CLI companion)
-	pkgver = 1.2.16_5594158052802560
+	pkgver = 1.2.17_6683332533157888
 	pkgrel = 1
 	url = https://antigravity.google/product/antigravity-cli
 	install = antigravity-cli.install
@@ -14,9 +14,9 @@ pkgbase = antigravity-cli
 	options = !strip
 	source = LICENSE
 	sha256sums = 7bcdb3cf53451b33c75e04f1f0e623e8aa8b7943a72f54f4781a7ad545a7d1ce
-	source_x86_64 = antigravity-cli-1.2.16_5594158052802560-x86_64.tar.gz::https://storage.googleapis.com/antigravity-public/antigravity-cli/1.2.16-5594158052802560/linux-x64/cli_linux_x64.tar.gz
-	sha256sums_x86_64 = d4247430e04cebdbe1ca93d9ccb483cd2f3daeb4cdb0ace5a71cd130e0bdab84
-	source_aarch64 = antigravity-cli-1.2.16_5594158052802560-aarch64.tar.gz::https://storage.googleapis.com/antigravity-public/antigravity-cli/1.2.16-5594158052802560/linux-arm/cli_linux_arm64.tar.gz
-	sha256sums_aarch64 = a6d269d2764e5636ab2bcda73b78c587fe9d00ead767aa3974574229585ee0d3
+	source_x86_64 = antigravity-cli-1.2.17_6683332533157888-x86_64.tar.gz::https://storage.googleapis.com/antigravity-public/antigravity-cli/1.2.17-6683332533157888/linux-x64/cli_linux_x64.tar.gz
+	sha256sums_x86_64 = b0ed8a7c375b5af3af973f08a601e41aebb38bac7e80b922ab54d973a4275493
+	source_aarch64 = antigravity-cli-1.2.17_6683332533157888-aarch64.tar.gz::https://storage.googleapis.com/antigravity-public/antigravity-cli/1.2.17-6683332533157888/linux-arm/cli_linux_arm64.tar.gz
+	sha256sums_aarch64 = 4a1af1bb91352b72f40fce373a028023bf0e47f5fceb3dfa48249816c0f0caec
 
 pkgname = antigravity-cli
