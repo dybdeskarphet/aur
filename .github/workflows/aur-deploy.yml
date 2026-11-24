@@ -14,6 +14,10 @@ on:
       - 'packages/**'
   workflow_dispatch:
 
+concurrency:
+  group: aur-deploy
+  cancel-in-progress: false
+
 jobs:
   sync-aur:
     runs-on: ubuntu-latest

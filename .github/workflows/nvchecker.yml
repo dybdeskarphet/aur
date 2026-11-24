@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: nvchecker
+  cancel-in-progress: false
+
 jobs:
   check-and-update:
     runs-on: ubuntu-latest
@@ -38,8 +42,15 @@ jobs:
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
       - name: Run nvchecker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          su builder -c "nvchecker -c nvchecker.toml"
+          KEYFILE=$(mktemp)
+          printf '[keys]\ngithub = "%s"\n' "$GITHUB_TOKEN" > "$KEYFILE"
+          chown builder "$KEYFILE"
+          chmod 600 "$KEYFILE"
+          su builder -c "nvchecker -c nvchecker.toml -k $KEYFILE"
+          rm -f "$KEYFILE"
           su builder -c "nvcmp -c nvchecker.toml" > updates.txt || true
           cat updates.txt
 
@@ -91,14 +102,28 @@ jobs:
               else
                 # Standard release package (sanitize newver)
                 CLEAN_NEWVER=$(echo "$newver" | sed -E 's/^v//; s/^[0-9]+://; s/-[0-9]+$//')
+                UPSTREAM_REL=$(echo "$newver" | sed -nE 's/.*-([0-9]+)$/\1/p')
+                OLD_PKGVER=$(grep '^pkgver=' PKGBUILD | cut -d= -f2 | tr -d "'\"")
+                OLD_PKGREL=$(grep '^pkgrel=' PKGBUILD | cut -d= -f2 | tr -d "'\"")
 
                 sed -i "s/^pkgver=.*/pkgver=$CLEAN_NEWVER/" PKGBUILD
-                sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
 
-                su builder -c "updpkgsums"
-                su builder -c "makepkg --printsrcinfo" > .SRCINFO
+                if grep -q '^_upstream_rel=' PKGBUILD && [ -n "$UPSTREAM_REL" ]; then
+                  OLD_UPSTREAM_REL=$(grep '^_upstream_rel=' PKGBUILD | cut -d= -f2 | tr -d "'\"")
+                  sed -i "s/^_upstream_rel=.*/_upstream_rel=$UPSTREAM_REL/" PKGBUILD
+                  if [ "$OLD_PKGVER" = "$CLEAN_NEWVER" ] && [ "$OLD_UPSTREAM_REL" != "$UPSTREAM_REL" ]; then
+                    NEW_PKGREL=$((OLD_PKGREL + 1))
+                  elif [ "$OLD_PKGVER" = "$CLEAN_NEWVER" ]; then
+                    NEW_PKGREL=$OLD_PKGREL
+                  else
+                    NEW_PKGREL=1
+                  fi
+                  sed -i "s/^pkgrel=.*/pkgrel=$NEW_PKGREL/" PKGBUILD
+                else
+                  sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+                fi
 
-                if su builder -c "makepkg -s --noconfirm"; then
+                if su builder -c "updpkgsums" && su builder -c "makepkg --printsrcinfo" > .SRCINFO && su builder -c "makepkg -s --noconfirm"; then
                   echo "SUCCESS: $pkg built successfully!"
                   su builder -c "makepkg -c --noconfirm" || true
                   rm -f *.pkg.tar.*
@@ -124,6 +149,7 @@ jobs:
       - name: Push All Package Updates
         run: |
           if [ -n "$(git status --porcelain)" ] || git log origin/main..HEAD | grep -q .; then
+            git pull --rebase origin main
             git push origin main
           else
             echo "No successfully built version updates to push."

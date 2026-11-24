@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-builds
+  cancel-in-progress: false
+
 jobs:
   build-and-publish-repo:
     runs-on: ubuntu-latest
@@ -67,6 +71,7 @@ jobs:
           fi
 
           NEWLY_BUILT=false
+          NEWLY_BUILT_FILES=()
 
           for pkg in $ALL_PACKAGES; do
             PKGBUILD_PATH="packages/$pkg/PKGBUILD"
@@ -100,10 +105,16 @@ jobs:
                   for f in $TARGET_PKGS; do
                     if [ -f "$f" ] && [[ "$f" != *-debug-*.pkg.tar.* ]]; then
                       cp "$f" "$GITHUB_WORKSPACE/dist/"
+                      NEWLY_BUILT_FILES+=("$GITHUB_WORKSPACE/dist/$(basename "$f")")
                     fi
                   done
                 else
-                  cp "${pkg}-${PKGVER}-${PKGREL}-"*.pkg.tar.* "$GITHUB_WORKSPACE/dist/" 2>/dev/null || true
+                  for f in "${pkg}-${PKGVER}-${PKGREL}-"*.pkg.tar.*; do
+                    if [ -f "$f" ]; then
+                      cp "$f" "$GITHUB_WORKSPACE/dist/"
+                      NEWLY_BUILT_FILES+=("$GITHUB_WORKSPACE/dist/$(basename "$f")")
+                    fi
+                  done
                 fi
 
                 su builder -c "makepkg -c --noconfirm" || true
@@ -118,6 +129,11 @@ jobs:
           cd "$GITHUB_WORKSPACE/dist"
           # Remove any debug packages or source tarballs from repository index
           rm -f *-debug-*.pkg.tar.* || true
+
+          if [ "$NEWLY_BUILT" = "false" ] && [ -f "${REPO_NAME}.db" ] && [ -f "${REPO_NAME}.files" ]; then
+            echo "All packages are already up-to-date in repository. Skipping release update."
+            exit 0
+          fi
 
           AVAILABLE_PKGS=$(ls *.pkg.tar.* 2>/dev/null | grep -v "\.db" | grep -v "\.files" || true)
 
@@ -191,7 +207,11 @@ jobs:
             gh release delete-asset "$RELEASE_TAG" "${REPO_NAME}.db.tar.zst" --yes 2>/dev/null || true
             gh release delete-asset "$RELEASE_TAG" "${REPO_NAME}.files.tar.zst" --yes 2>/dev/null || true
 
-            gh release upload "$RELEASE_TAG" "$GITHUB_WORKSPACE/dist"/* --clobber
+            gh release upload "$RELEASE_TAG" \
+              "$GITHUB_WORKSPACE/dist/${REPO_NAME}.db" \
+              "$GITHUB_WORKSPACE/dist/${REPO_NAME}.files" \
+              "${NEWLY_BUILT_FILES[@]}" \
+              --clobber
           fi
 
           echo "SUCCESS: Pacman repository published successfully!"
